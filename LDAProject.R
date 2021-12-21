@@ -23,10 +23,50 @@ attach(aids)
 
 
 ##### 2.DESCRIPTIVE ANALYSIS #####
+
+### univariate analysis
 summary(aids)
-#num_aids=subset(aids, select =c(survival_times, CD4_cells))
+
+## survival
 hist(survival, main="Distribution of Survival Times", xlab="Survival Times")
-plot(aids)
+# distribution
+qqplot(survival, rnorm(length(survival)))
+shapiro.test(survival)
+#clearly not normal
+boxplot(survival, main="Boxplot of Survivaltimes")
+
+#cens
+plot(as.factor(cens), main="Censoring of the data")
+#proportion of censoring
+sum(aids$cens)/length(aids)
+
+#CD4_cells
+boxplot(CD4_cells, main="Boxplot of CD4 cells")
+hist(CD4_cells)
+lamb=mean(CD4_cells)
+#distribution
+qqplot(CD4_cells,rpois(length(CD4_cells),mean(CD4_cells)))
+qqplot(CD4_cells,rexp(length(CD4_cells)))
+
+#treatment
+plot(treatment, main="Treatment Types")
+#gender
+plot(gender, main="Distribution of Gender")
+#AIDS
+plot(AIDS,main="Distribution of AIDS" )
+#AZT
+plot(AZT,main="Distribution of AZT" )
+
+### bivariate analysis
+
+plot(survival,CD4_cells, main="Suvival times vs. CD4 cells")
+boxplot(survival~gender, main="Boxplot of Survival time by Gender")
+boxplot(survival~AIDS, main="Boxplot of Survival time by AIDS")
+boxplot(survival~treatment, main="Boxplot of Survival time by Treatment")
+boxplot(survival~AZT, main="Boxplot of Survival time by AZT")
+
+
+
 
 ##### 3.NON-PARAMETRIC ANALYIS #####
 
@@ -227,7 +267,5 @@ curve(pnorm(x, lower.tail = FALSE), from = min(residsLN), to = max(residsLN),
       col = 2, lwd = 3, add = TRUE)
 legend("bottomleft", c("KM estimate", "95% - CI", "Stand. Normal Distribution"),
        col = c(1, 1, 2), lty = c(1, 2, 1), lwd = 3, bty = "n")
-
-
 
 ##### 5. SEMI-PARAMETRIC MODEL
