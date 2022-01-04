@@ -25,6 +25,7 @@ attach(aids)
 ##### 2.DESCRIPTIVE ANALYSIS #####
 
 ### univariate analysis
+
 summary(aids)
 
 ## survival
@@ -38,15 +39,15 @@ boxplot(survival, main="Boxplot of Survivaltimes")
 #cens
 plot(as.factor(cens), main="Censoring of the data")
 #proportion of censoring
-sum(aids$cens)/length(aids)
+1-sum(aids$cens)/length(cens)
 
 #CD4_cells
-boxplot(CD4_cells, main="Boxplot of CD4 cells")
+b=boxplot(CD4_cells, main="Boxplot of CD4 cells")
 hist(CD4_cells)
 lamb=mean(CD4_cells)
 #distribution
-qqplot(CD4_cells,rpois(length(CD4_cells),mean(CD4_cells)))
-qqplot(CD4_cells,rexp(length(CD4_cells)))
+qqplot(CD4_cells,rpois(length(CD4_cells),1/lamb))
+qqplot(CD4_cells,rexp(length(CD4_cells), lamb))
 
 #treatment
 plot(treatment, main="Treatment Types")
@@ -58,13 +59,24 @@ plot(AIDS,main="Distribution of AIDS" )
 plot(AZT,main="Distribution of AZT" )
 
 ### bivariate analysis
+install.packages("corrplot")
+install.packages("PerformanceAnalytics")
+library(corrplot)
+library(PerformanceAnalytics)
+
+aids.corr=aids
+aids.corr$treatment=as.integer(aids.corr$treatment)-1
+aids.corr$gender=as.integer(aids.corr$gender)-1
+aids.corr$AZT=as.integer(aids.corr$AZT)-1
+aids.corr$AIDS=as.integer(aids.corr$AIDS)-1
+chart.Correlation(aids.corr, histogram=TRUE, pch=19)
+corrplot(cor(aids.corr))
 
 plot(survival,CD4_cells, main="Suvival times vs. CD4 cells")
 boxplot(survival~gender, main="Boxplot of Survival time by Gender")
 boxplot(survival~AIDS, main="Boxplot of Survival time by AIDS")
 boxplot(survival~treatment, main="Boxplot of Survival time by Treatment")
 boxplot(survival~AZT, main="Boxplot of Survival time by AZT")
-
 
 
 
