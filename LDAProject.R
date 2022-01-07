@@ -5,7 +5,6 @@ setwd("C:/Users/johan/Google Drive/UNI/UPC/Lifetime Data Analysis/Lifetime-Data-
 # the survival time and the five variables contained in the
 # data set.
 
-
 ###### IMPORT ######
 library(survival)
 library(KMsurv)
@@ -59,8 +58,8 @@ plot(AIDS,main="Distribution of AIDS" )
 plot(AZT,main="Distribution of AZT" )
 
 ### bivariate analysis
-install.packages("corrplot")
-install.packages("PerformanceAnalytics")
+#install.packages("corrplot")
+#install.packages("PerformanceAnalytics")
 library(corrplot)
 library(PerformanceAnalytics)
 
@@ -68,8 +67,9 @@ aids.corr=aids
 aids.corr$treatment=as.integer(aids.corr$treatment)-1
 aids.corr$gender=as.integer(aids.corr$gender)-1
 aids.corr$AZT=as.integer(aids.corr$AZT)-1
-aids.corr$AIDS=as.integer(aids.corr$AIDS)-1
+aids.corr$AIDS=(as.integer(aids.corr$AIDS))%%2
 chart.Correlation(aids.corr, histogram=TRUE, pch=19)
+
 corrplot(cor(aids.corr))
 
 plot(survival,CD4_cells, main="Suvival times vs. CD4 cells")
@@ -77,7 +77,6 @@ boxplot(survival~gender, main="Boxplot of Survival time by Gender")
 boxplot(survival~AIDS, main="Boxplot of Survival time by AIDS")
 boxplot(survival~treatment, main="Boxplot of Survival time by Treatment")
 boxplot(survival~AZT, main="Boxplot of Survival time by AZT")
-
 
 
 ##### 3.NON-PARAMETRIC ANALYIS #####
@@ -88,50 +87,73 @@ with(aids, Surv(survival, cens))
 ### 3.1 overall survival function
 svf <- survfit(Surv(survival, cens) ~ 1, aids) #KM estimator
 svfNA= survfit(Surv(survival, cens) ~ 1, aids, type = "fleming") #NA estimator
+quantile(svf)
 
 # both the same
 
 par(las = 1, font = 2, font.axis = 2, font.lab = 4, bty = "l")
 plot(svf, col = 3, lwd = 3, xlab = "Survival time [Years]",
      ylab = expression(bolditalic(hat(S)(t))), xaxs = "i", yaxs = "i",
-     xlim = c(0, 25), conf.int=FALSE, main="Survival Functin AIDS patients \n (KM estimator)")
+     xlim = c(0, 25), conf.int=TRUE, main="Survival Function AIDS patients \n (KM estimator)")
 lines(svfNA, col = 2, lwd = 3, xlab = "Survival time [Years]",
      ylab = expression(bolditalic(hat(S)(t))), xaxs = "i", yaxs = "i",
-     xlim = c(0, 25), conf.int=FALSE, main="Survival Functin AIDS patients \n (NA estimator)")
+     xlim = c(0, 25), conf.int=FALSE, main="Survival Function AIDS patients \n (NA estimator)")
 axis(1, seq(0, 25, 5))
 
 #survival function wtr treatment groups, CD4_cells, gender, AIDS, AZT
+
+#bin the variable CD4 count according to the quantiles
+CD4_cat <- cut(CD4_cells, breaks=c(-Inf, 11, 37,109,Inf), labels=c("0-11", "12-37","38-109","110-307"))
+
 svf_tr <- survfit(Surv(survival, cens) ~ treatment, aids)
 svf_ge <- survfit(Surv(survival, cens) ~ gender, aids)
 svf_AI <- survfit(Surv(survival, cens) ~ AIDS, aids)
 svf_AZ <- survfit(Surv(survival, cens) ~ AZT, aids)
+svf_CD <- survfit(Surv(survival, cens) ~ CD4_cat, aids)
+
+svf_tr
+svf_ge
+svf_AI
+svf_AZ
+svf_CD
 
 #plot
-par(las = 1, font = 2, font.axis = 2, font.lab = 4, bty = "l", mfrow=c(2,2))
+par(las = 1, font = 2, font.axis = 2, font.lab = 4, bty = "l",mfrow=c(1,2))
 plot(svf_tr, col = 1:2, lwd = 3, xlab = "Survival time [Years]",
      ylab = expression(bolditalic(hat(S)(t))), xaxs = "i", yaxs = "i",
-     xlim = c(0, 25),main="Survival Functin AIDS patients")
+     xlim = c(0, 25),main="Survival Function AIDS patients")
 legend("bottomleft", levels(aids$treatment), lwd = 3, col = 1:2, bty = "n")
 
 plot(svf_ge, col = 1:2, lwd = 3, xlab = "Survival time [Years]",
      ylab = expression(bolditalic(hat(S)(t))), xaxs = "i", yaxs = "i",
-     xlim = c(0, 25),main="Survival Functin AIDS patients")
+     xlim = c(0, 25),main="Survival Function AIDS patients")
 legend("bottomleft", levels(aids$gender), lwd = 3, col = 1:2, bty = "n")
 
 plot(svf_AI, col = 1:2, lwd = 3, xlab = "Survival time [Years]",
      ylab = expression(bolditalic(hat(S)(t))), xaxs = "i", yaxs = "i",
-     xlim = c(0, 25),main="Survival Functin AIDS patients")
+     xlim = c(0, 25),main="Survival Function AIDS patients")
 legend("bottomleft", levels(aids$AIDS), lwd = 3, col = 1:2, bty = "n")
 
 plot(svf_AZ, col = 1:2, lwd = 3, xlab = "Survival time [Years]",
      ylab = expression(bolditalic(hat(S)(t))), xaxs = "i", yaxs = "i",
-     xlim = c(0, 25),main="Survival Functin AIDS patients")
+     xlim = c(0, 25),main="Survival Function AIDS patients")
 legend("bottomleft", levels(aids$AZT), lwd = 3, col = 1:2, bty = "n")
+
+plot(svf_CD, col = 1:4, lwd = 3, xlab = "Survival time [Years]",
+     ylab = expression(bolditalic(hat(S)(t))), xaxs = "i", yaxs = "i",
+     xlim = c(0, 25),main="Survival Function CD4 cell counts")
+legend("bottomleft", levels(CD4_cat), lwd = 3, col = 1:4, bty = "n")
+
 
 ### 3.2 estimatin of median survival time
 svf
 quantile(svf)
 #median 19.1
+quantile(svf_tr)
+quantile(svf_ge)
+summary(svf_AZ[2])$surv
+quantile(svf_AI)
+quantile(svf_CD)
 
 #distribution function
 plot(svf, col = 3, xlab = "Time to Death [Years]",
@@ -144,9 +166,22 @@ abline(h=0.5, col=2, lwd=1)
 
 
 #logrank test
-svflr <- with(aids, Surv(survival, cens) ~ treatment)
-lrt=survdiff(svflr)
-lrt
+svflr_tr <- with(aids, Surv(survival, cens) ~ treatment)
+svflr_ge <- with(aids, Surv(survival, cens) ~ gender)
+svflr_AI <- with(aids, Surv(survival, cens) ~ AIDS)
+svflr_CD <- with(aids, Surv(survival, cens) ~ CD4_cat)
+svflr_AZ <- with(aids, Surv(survival, cens) ~ AZT)
+lrt_tr=survdiff(svflr_tr)
+lrt_ge=survdiff(svflr_ge)
+lrt_AI=survdiff(svflr_AI)
+lrt_CD=survdiff(svflr_CD)
+lrt_AZ=survdiff(svflr_AZ)
+lrt_tr #not reject
+lrt_ge #not reject
+lrt_AI #reject
+lrt_CD #reject
+lrt_AZ #reject
+#not reject
 
 #other non-parametric tests
 survdiff(svflr, rho = 1)
@@ -159,40 +194,30 @@ FHtestrcc(svflr, lambda = 1)
 FHtestrcc(svflr, rho = 1, lambda = 1)
 FHtestrcc(svflr, rho = 0.5, lambda = 2)
 
-#stratified test
-#TODO: is balanced study?
-staids <- with(aids, Surv(survival, cens) ~ treatment + AZT)
-survfit(staids)
-plot(staids)
-
 ##### 4.PARAMETRIC SURVIVAL MODEL #####
 
 ### 4.1: Fit of a Weibull, log-logistic, or lognormal model.
 
 #weibull models
-weimod1 <- survreg(Surv(survival, cens) ~ 1, dist = "weibull")
-weimod2 <- survreg(Surv(survival, cens) ~ treatment, dist = "weibull")
-weimod3 <- survreg(Surv(survival, cens) ~ AZT, dist = "weibull")
-weimod4 <- survreg(Surv(survival, cens) ~ gender, dist = "weibull")
-weimod5 <- survreg(Surv(survival, cens) ~ AIDS, dist = "weibull")
-weimod6 <- survreg(Surv(survival, cens) ~ CD4_cells, dist = "weibull")
+weimod1 <- survreg(Surv(survival, cens) ~ treatment+AIDS+CD4_cells+AZT+gender, dist = "weibull")
+weimod2 <- survreg(Surv(survival, cens) ~ AIDS, dist = "weibull")
+weimod3 <- survreg(Surv(survival, cens) ~ CD4_cat, dist = "weibull")
+weimod4 <- survreg(Surv(survival, cens) ~ AZT, dist = "weibull")
 
 summary(weimod1)
 summary(weimod2)
 summary(weimod3)
-summary(weimod4)
-summary(weimod5)
-summary(weimod6)
+summary(weimod1)
 
-anova(weimod3)
+anova(weimod1)
 
 #weibull: check fit
-wm3pred <- predict(weimod3, type = "linear")
-wm3pred
-resids <- (log(aids$survival) - wm3pred) / weimod3$scale
+wm1pred <- predict(weimod1, type = "linear")
+wm1pred
+resids <- (log(aids$survival) - wm1pred) / weimod1$scale
 resids
 
-par(font = 2, font.lab = 4, font.axis = 2, las = 1, oma = c(0, 0, 1, 0),
+par(font = 2, font.lab = 4, font.axis = 2, las = 1, oma = c(0, 0, 1, 0),mfrow=c(1,3),
     mar = c(5, 5, 4, 2))
 plot(survfit(Surv(resids, aids$cens) ~ 1), xlab = "Years", lwd = 3,
      ylab = expression(bold(hat(S)(t))), yaxs = "i")
@@ -210,20 +235,18 @@ legend("bottomleft", c("KM estimate", "95% - CI", "Stand. Gumbel Distribution"),
 
 
 #loglogistic models
-loglomod1 <- survreg(Surv(survival, cens) ~ 1, dist = "loglogistic")
-loglomod2 <- survreg(Surv(survival, cens) ~ treatment, dist = "loglogistic")
-loglomod3 <- survreg(Surv(survival, cens) ~ AZT, dist = "loglogistic")
-loglomod4 <- survreg(Surv(survival, cens) ~ gender, dist = "loglogistic")
-loglomod5 <- survreg(Surv(survival, cens) ~ AIDS, dist = "loglogistic")
-loglomod6 <- survreg(Surv(survival, cens) ~ CD4_cells, dist = "loglogistic")
+loglomod1 <- survreg(Surv(survival, cens) ~ AZT+AIDS+gender+treatment+CD4_cells, dist = "loglogistic")
+loglomod2 <- survreg(Surv(survival, cens) ~ AIDS, dist = "loglogistic")
+loglomod3 <- survreg(Surv(survival, cens) ~ CD4_cells, dist = "loglogistic")
+loglomod4 <- survreg(Surv(survival, cens) ~ AZT, dist = "loglogistic")
+
 
 summary(loglomod1)
 summary(loglomod2)
 summary(loglomod3)
 summary(loglomod4)
-summary(loglomod5)
-summary(loglomod6)
 
+anova(loglomod1)
 #loglogistic: model fit
 
 lnopred <- predict(loglomod1, type = "linear")
@@ -235,7 +258,7 @@ par(font = 2, font.lab = 4, font.axis = 2, las = 1, oma = c(0, 0, 1, 0),
     mar = c(5, 5, 4, 2))
 plot(survfit(Surv(residsLN, aids$cens) ~ 1), xlab = "Years", lwd = 3,
      ylab = expression(bold(hat(S)(t))), yaxs = "i")
-title("Residuals of the lognormal regression model")
+title("Residuals of the loglogistic regression model")
 
 # Adding the theoretical survival function
 
@@ -246,25 +269,21 @@ legend("bottomleft", c("KM estimate", "95% - CI", "Stand. Normal Distribution"),
 
 
 #lognormal models
-lognomod1 <- survreg(Surv(survival, cens) ~ 1, dist = "lognormal")
-lognomod2 <- survreg(Surv(survival, cens) ~ treatment, dist = "lognormal")
-lognomod3 <- survreg(Surv(survival, cens) ~ AZT, dist = "lognormal")
-lognomod4 <- survreg(Surv(survival, cens) ~ gender, dist = "lognormal")
-lognomod5 <- survreg(Surv(survival, cens) ~ AIDS, dist = "lognormal")
-lognomod6 <- survreg(Surv(survival, cens) ~ CD4_cells, dist = "lognormal")
+lognomod1 <- survreg(Surv(survival, cens) ~ AZT+AIDS+treatment+gender+CD4_cells, dist = "lognormal")
+lognomod2 <- survreg(Surv(survival, cens) ~ AIDS, dist = "lognormal")
+lognomod3 <- survreg(Surv(survival, cens) ~ CD4_cells, dist = "lognormal")
+lognomod4 <- survreg(Surv(survival, cens) ~ AZT, dist = "lognormal")
 
 summary(lognomod1)
 summary(lognomod2)
 summary(lognomod3)
 summary(lognomod4)
-summary(lognomod5)
-summary(lognomod6)
+anova(lognomod1)
 
 
 #lognormal: check fit
-
-lnopred <- predict(lognomod3, type = "linear")
-residsLN <- (log(aids$survival) - lnopred) / lognomod3$scale
+lnopred <- predict(lognomod1, type = "linear")
+residsLN <- (log(aids$survival) - lnopred) / lognomod1$scale
 residsLN
 
 #plot residual
@@ -279,5 +298,17 @@ curve(pnorm(x, lower.tail = FALSE), from = min(residsLN), to = max(residsLN),
       col = 2, lwd = 3, add = TRUE)
 legend("bottomleft", c("KM estimate", "95% - CI", "Stand. Normal Distribution"),
        col = c(1, 1, 2), lty = c(1, 2, 1), lwd = 3, bty = "n")
+
+### 4.3
+
+#acceleration factor: AIDS
+exp(-weimod2$coefficient[2])
+#odds ratio: AIDS
+exp(-weimod2$coefficient[2] / weimod2$scale)
+
+#acceleration factor: CD4 cells
+exp(-weimod3$coefficient[2:4])
+#odds ratio: CD4 cells
+exp(-weimod3$coefficient[2:4] / weimod3$scale)
 
 ##### 5. SEMI-PARAMETRIC MODEL
