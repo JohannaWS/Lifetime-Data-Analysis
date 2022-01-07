@@ -151,7 +151,7 @@ quantile(svf)
 #median 19.1
 quantile(svf_tr)
 quantile(svf_ge)
-summary(svf_AZ[2])$surv
+summary(svf_AZ)
 quantile(svf_AI)
 quantile(svf_CD)
 
