@@ -1,11 +1,11 @@
-setwd("C:/Users/johan/Google Drive/UNI/UPC/Lifetime Data Analysis/Lifetime-Data-Analysis")
+# setwd("C:/Users/johan/Google Drive/UNI/UPC/Lifetime Data Analysis/Lifetime-Data-Analysis")
 
 # Objective: To analyze the survival time in patients with HIV and
 # low CD4 cell count. Study the association between
 # the survival time and the five variables contained in the
 # data set.
 
-
+setwd("~/Downloads/Lab class 8 21.12.2021-20220104")
 ###### IMPORT ######
 library(survival)
 library(KMsurv)
@@ -59,8 +59,8 @@ plot(AIDS,main="Distribution of AIDS" )
 plot(AZT,main="Distribution of AZT" )
 
 ### bivariate analysis
-install.packages("corrplot")
-install.packages("PerformanceAnalytics")
+# install.packages("corrplot")
+# install.packages("PerformanceAnalytics")
 library(corrplot)
 library(PerformanceAnalytics)
 
@@ -68,7 +68,7 @@ aids.corr=aids
 aids.corr$treatment=as.integer(aids.corr$treatment)-1
 aids.corr$gender=as.integer(aids.corr$gender)-1
 aids.corr$AZT=as.integer(aids.corr$AZT)-1
-aids.corr$AIDS=as.integer(aids.corr$AIDS)-1
+aids.corr$AIDS=as.integer(AIDS,levels=c("noAIDS","AIDS"))%%2
 chart.Correlation(aids.corr, histogram=TRUE, pch=19)
 corrplot(cor(aids.corr))
 
@@ -280,4 +280,122 @@ curve(pnorm(x, lower.tail = FALSE), from = min(residsLN), to = max(residsLN),
 legend("bottomleft", c("KM estimate", "95% - CI", "Stand. Normal Distribution"),
        col = c(1, 1, 2), lty = c(1, 2, 1), lwd = 3, bty = "n")
 
-##### 5. SEMI-PARAMETRIC MODEL
+##### 5. SEMI-PARAMETRIC MODEL #####
+##### 5.1 Fit of the proportional hazards models.
+## The fit of a Cox model
+svfc <- with(myeloma, Surv(survival, cens))
+coxm <- coxph(svfc ~ CD4_cells + treatment + gender + AIDS + AZT, aids)
+summary(coxm)
+
+coxm$var
+
+#####  5.2 Interpretation of the model fit.
+
+# In here we try to interpret the model.
+
+#####  5.3 Interpretation of the model parameters in terms of relative hazards.
+# which is the ratio of the hazard at time t to the baseline hazard, to the risk factors
+library(Epi)
+ci.lin(coxm)
+round(ci.lin(coxm, Exp = TRUE), 3)
+(ctmat <- matrix(c(1, 0, 0, 0, 0,
+                   0, 1, 0, 0, 0,
+                   0, 0, 1, 0, 0,
+                   0, 0, 0, 1, 0,
+                   0, 0, 0, 0, 1), byrow = TRUE, nr = 5))
+round(ci.lin(coxm, ctr.mat = ctmat, Exp = TRUE), 3)
+
+# A somewhat nicer presentation
+HRmat1 <- round(ci.lin(coxm, ctr.mat = ctmat, Exp = TRUE), 3)[, c(1, 5:7)]
+rownames(HRmat1) <- c("HR| CD4_cells", "HR| treatment ddI", "HR| gender male", "HR| noAIDS", "HR| AZT intolerance")
+colnames(HRmat1) <- c("logHR", "HR", "Lower 95%", "Upper 95%")
+HRmat1
+
+par(font = 2, font.lab = 4, font.axis = 2, las = 1)
+plot(survfit(coxm), lwd = 2, col = 3)
+
+#####  5.4 Analysis of the residuals to check the model’s goodness-of-fit.
+# What are the residuals for the Cox model?
+# (a) generalized (Cox-Snell)
+# (b) Schoenfeld
+# (c) martingale
+
+residuals(coxm)
+
+resids1 <- residuals(update(coxm,  ~ . - CD4_cells))
+
+
+par(mfrow = c(2, 3), font = 2, font.lab = 4, font.axis = 2, las = 1,
+    cex.lab = 1.3, cex.axis = 1.2)
+plot(resids1 ~ aids$CD4_cells, xlab = "CD4_cells", ylab = "Residuals", pch = 19)
+abline(h = 0, lwd = 2, lty = 2)
+lines(lowess(aids$CD4_cells, resids1), lwd = 3)
+
+## The dfbeta residuals: looking for influential observations.
+
+dfbet <- residuals(coxm, type = "dfbeta")
+dim(dfbet)
+par(mfrow = c(2,3), font = 2, font.lab = 4, font.axis = 2, las = 1,
+    cex.lab = 1.3, cex.axis = 1.2)
+for (i in 1:5) {
+  plot(dfbet[, i], pch = 16, ylab = "")
+  title(names(coef(coxm))[i])
+  axis(1, at = seq(5, 45, 5))
+  abline(h=0)
+}
+
+## Closer look at the influential observations on the estimation of a
+## couple of parameters.
+## Variable CD4_cells:
+par(font = 2, font.lab = 4, font.axis = 2, las = 1, cex.lab = 1.3,
+    cex.axis = 1.2)
+plot(dfbet[, 3], pch = 16, ylab = "")
+title(names(coef(coxm))[3])
+axis(1, at = seq(5, 45, 5))
+identify(dfbet[, 3],
+         labels = paste0("Row: ", rownames(aids), "; Time: ", aids$survival,
+                         "; Cens: ", aids$cens, "; CD4_cells: ", aids$CD4_cells))
+
+# ID 38 is an influential observation:
+aids[263, ]     
+# Estimation of beta_3 excluding ID263
+coxm1 <- coxph(Surv(survival, cens) ~ CD4_cells + treatment + gender + AIDS + AZT, data = aids[-263, ])
+summary(coxm1)
+## Variable gender:
+par(font = 2, font.lab = 4, font.axis = 2, las = 1, cex.lab = 1.3,
+    cex.axis = 1.2, mfrow = c(1,1))
+plot(dfbet[, 4], pch = 16, ylab = "")
+title(names(coef(coxm))[4])
+axis(1, at = seq(5, 45, 5))
+identify(dfbet[, 4],
+         labels = paste0("Row: ", rownames(aids), "; Time: ", aids$survival,
+                         "; Cens: ", aids$cens, "; gender: ", aids$gender))
+
+# ID 13 is an influential observation
+aids[c(14, 49, 261), ]
+
+# Estimation of beta_4 excluding ID13
+coxm2 <- coxph(Surv(survival, cens) ~ CD4_cells + treatment + gender + AIDS + AZT, data = aids[-c(14, 49, 261), ])
+summary(coxm2)
+
+## The Schoenfeld residuals:
+## Can we assume the assumption of proportional hazards hold?
+
+residuals(coxm, "schoenfeld")
+## (i) Use of function cox.zph
+cox.zph(coxm)
+
+## (ii) Use of function plot.cox.zph
+par(mfrow = c(2, 3), font = 2, font.lab = 4, font.axis = 2, las = 1,
+    cex.lab = 1.3, cex.axis = 1.2)
+plot(cox.zph(coxm), lwd = 2)
+
+library(tidyverse)
+
+aids$resid_mart <- residuals(coxm, type = "martingale")
+
+ggplot(data = aids, mapping = aes(x = CD4_cells, y = resid_mart)) +
+  geom_point() +
+  geom_smooth() +
+  labs(title = "CD4_cells") +
+  theme_bw() + theme(legend.key = element_blank())
